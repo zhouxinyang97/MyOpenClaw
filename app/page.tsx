@@ -1,0 +1,197 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+
+type Filter = "all" | "active" | "completed";
+
+type Todo = {
+  id: string;
+  title: string;
+  completed: boolean;
+  createdAt: number;
+};
+
+const STORAGE_KEY = "focus-todo-items";
+
+function loadTodos(): Todo[] {
+  if (typeof window === "undefined") return [];
+  const raw = window.localStorage.getItem(STORAGE_KEY);
+  if (!raw) return [];
+  try {
+    return JSON.parse(raw) as Todo[];
+  } catch {
+    return [];
+  }
+}
+
+export default function HomePage() {
+  const [todos, setTodos] = useState<Todo[]>([]);
+  const [title, setTitle] = useState("");
+  const [filter, setFilter] = useState<Filter>("all");
+
+  useEffect(() => {
+    setTodos(loadTodos());
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+    }
+  }, [todos]);
+
+  const stats = useMemo(() => {
+    const total = todos.length;
+    const completed = todos.filter((t) => t.completed).length;
+    return { total, completed };
+  }, [todos]);
+
+  const filteredTodos = useMemo(() => {
+    if (filter === "active") return todos.filter((t) => !t.completed);
+    if (filter === "completed") return todos.filter((t) => t.completed);
+    return todos;
+  }, [todos, filter]);
+
+  const addTodo = () => {
+    const trimmed = title.trim();
+    if (!trimmed) return;
+    const next: Todo = {
+      id: crypto.randomUUID(),
+      title: trimmed,
+      completed: false,
+      createdAt: Date.now(),
+    };
+    setTodos((prev) => [next, ...prev]);
+    setTitle("");
+  };
+
+  const toggleTodo = (id: string) => {
+    setTodos((prev) =>
+      prev.map((todo) =>
+        todo.id === id ? { ...todo, completed: !todo.completed } : todo
+      )
+    );
+  };
+
+  const removeTodo = (id: string) => {
+    setTodos((prev) => prev.filter((todo) => todo.id !== id));
+  };
+
+  const clearCompleted = () => {
+    setTodos((prev) => prev.filter((todo) => !todo.completed));
+  };
+
+  const handleKey = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") addTodo();
+  };
+
+  return (
+    <main className="min-h-screen px-6 py-12">
+      <div className="mx-auto w-full max-w-3xl">
+        <header className="mb-10 space-y-3">
+          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-700">
+            <span className="h-2 w-2 rounded-full bg-emerald-500" />
+            Focus Todo
+          </div>
+          <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
+            今天要完成哪些事？
+          </h1>
+          <p className="text-slate-600">
+            轻量、清爽、专注的待办清单。所有数据保存在浏览器本地。
+          </p>
+        </header>
+
+        <section className="rounded-3xl bg-white p-6 shadow-soft ring-1 ring-slate-100">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center">
+            <div className="flex flex-1 items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+              <input
+                className="w-full bg-transparent text-base text-slate-900 placeholder:text-slate-400 focus:outline-none"
+                placeholder="写下下一件要做的事…"
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                onKeyDown={handleKey}
+              />
+            </div>
+            <button
+              className="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700"
+              onClick={addTodo}
+            >
+              添加任务
+            </button>
+          </div>
+
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-4 text-sm text-slate-500">
+            <span>
+              已完成 {stats.completed} / {stats.total}
+            </span>
+            <div className="flex items-center gap-2">
+              {(["all", "active", "completed"] as Filter[]).map((item) => (
+                <button
+                  key={item}
+                  onClick={() => setFilter(item)}
+                  className={`rounded-full px-3 py-1 text-sm font-medium transition ${
+                    filter === item
+                      ? "bg-slate-900 text-white"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                >
+                  {item === "all" && "全部"}
+                  {item === "active" && "进行中"}
+                  {item === "completed" && "已完成"}
+                </button>
+              ))}
+            </div>
+            <button
+              className="text-amber-600 transition hover:text-amber-700"
+              onClick={clearCompleted}
+            >
+              清除已完成
+            </button>
+          </div>
+
+          <div className="mt-6 space-y-3">
+            {filteredTodos.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center text-slate-400">
+                还没有任务，先写下一个吧。
+              </div>
+            ) : (
+              filteredTodos.map((todo) => (
+                <div
+                  key={todo.id}
+                  className="flex items-center justify-between gap-4 rounded-2xl border border-slate-100 bg-white px-4 py-3 shadow-sm"
+                >
+                  <label className="flex flex-1 items-center gap-3">
+                    <input
+                      type="checkbox"
+                      className="h-5 w-5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                      checked={todo.completed}
+                      onChange={() => toggleTodo(todo.id)}
+                    />
+                    <span
+                      className={`text-base ${
+                        todo.completed
+                          ? "text-slate-400 line-through"
+                          : "text-slate-800"
+                      }`}
+                    >
+                      {todo.title}
+                    </span>
+                  </label>
+                  <button
+                    className="text-slate-400 transition hover:text-rose-500"
+                    onClick={() => removeTodo(todo.id)}
+                  >
+                    删除
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+
+        <footer className="mt-10 text-center text-sm text-slate-400">
+          本地存储 · 无需登录 · 现代极简
+        </footer>
+      </div>
+    </main>
+  );
+}
