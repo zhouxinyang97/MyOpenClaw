@@ -13,6 +13,12 @@ type Todo = {
   createdAt: number;
 };
 
+type GoldQuote = {
+  price: number;
+  currency: string;
+  updatedAt: string;
+};
+
 const STORAGE_KEY = "focus-todo-items";
 const LOCALE_KEY = "focus-todo-locale";
 
@@ -31,6 +37,9 @@ const translations = {
     remove: "删除",
     footer: "本地存储 · 无需登录 · 现代极简",
     language: "EN",
+    goldLabel: "黄金现价",
+    goldLoading: "获取中…",
+    goldError: "获取失败",
   },
   en: {
     brand: "Focus Todo",
@@ -46,6 +55,9 @@ const translations = {
     remove: "Remove",
     footer: "Local storage · No login · Minimal & modern",
     language: "中文",
+    goldLabel: "Gold",
+    goldLoading: "Loading…",
+    goldError: "Unavailable",
   },
 } as const;
 
@@ -73,10 +85,38 @@ export default function HomePage() {
   const [title, setTitle] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [locale, setLocale] = useState<Locale>("zh");
+  const [gold, setGold] = useState<GoldQuote | null>(null);
+  const [goldError, setGoldError] = useState(false);
 
   useEffect(() => {
     setTodos(loadTodos());
     setLocale(detectLocale());
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+
+    const fetchGold = async () => {
+      try {
+        const res = await fetch("/api/gold");
+        if (!res.ok) throw new Error("failed");
+        const data = (await res.json()) as GoldQuote;
+        if (alive) {
+          setGold(data);
+          setGoldError(false);
+        }
+      } catch {
+        if (alive) setGoldError(true);
+      }
+    };
+
+    fetchGold();
+    const timer = setInterval(fetchGold, 60000);
+
+    return () => {
+      alive = false;
+      clearInterval(timer);
+    };
   }, []);
 
   useEffect(() => {
@@ -144,9 +184,25 @@ export default function HomePage() {
       <div className="mx-auto w-full max-w-3xl">
         <header className="mb-10 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="inline-flex items-center gap-2 rounded-full bg-red-100 px-3 py-1 text-sm font-medium text-red-700">
-              <span className="h-2 w-2 rounded-full bg-red-500" />
-              {copy.brand}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="inline-flex items-center gap-2 rounded-full bg-red-100 px-3 py-1 text-sm font-medium text-red-700">
+                <span className="h-2 w-2 rounded-full bg-red-500" />
+                {copy.brand}
+              </div>
+              <div className="rounded-full border border-slate-200 bg-white px-3 py-1 text-sm text-slate-600">
+                <span className="font-medium text-slate-700">
+                  {copy.goldLabel}:
+                </span>{" "}
+                {gold ? (
+                  <span className="text-slate-800">
+                    ${gold.price.toFixed(2)} {gold.currency}
+                  </span>
+                ) : goldError ? (
+                  <span className="text-rose-500">{copy.goldError}</span>
+                ) : (
+                  <span className="text-slate-400">{copy.goldLoading}</span>
+                )}
+              </div>
             </div>
             <button
               className="rounded-full border border-slate-200 px-3 py-1 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-800"
