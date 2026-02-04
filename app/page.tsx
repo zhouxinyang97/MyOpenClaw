@@ -88,8 +88,8 @@ export default function HomePage() {
     <main className="min-h-screen px-6 py-12">
       <div className="mx-auto w-full max-w-3xl">
         <header className="mb-10 space-y-3">
-          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-700">
-            <span className="h-2 w-2 rounded-full bg-emerald-500" />
+          <div className="inline-flex items-center gap-2 rounded-full bg-red-100 px-3 py-1 text-sm font-medium text-red-700">
+            <span className="h-2 w-2 rounded-full bg-red-500" />
             Focus Todo
           </div>
           <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
@@ -112,7 +112,7 @@ export default function HomePage() {
               />
             </div>
             <button
-              className="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700"
+              className="rounded-2xl bg-red-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-700"
               onClick={addTodo}
             >
               添加任务
@@ -128,11 +128,10 @@ export default function HomePage() {
                 <button
                   key={item}
                   onClick={() => setFilter(item)}
-                  className={`rounded-full px-3 py-1 text-sm font-medium transition ${
-                    filter === item
+                  className={`rounded-full px-3 py-1 text-sm font-medium transition ${filter === item
                       ? "bg-slate-900 text-white"
                       : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                  }`}
+                    }`}
                 >
                   {item === "all" && "全部"}
                   {item === "active" && "进行中"}
@@ -141,7 +140,7 @@ export default function HomePage() {
               ))}
             </div>
             <button
-              className="text-amber-600 transition hover:text-amber-700"
+              className="text-red-600 transition hover:text-red-700"
               onClick={clearCompleted}
             >
               清除已完成
@@ -162,16 +161,15 @@ export default function HomePage() {
                   <label className="flex flex-1 items-center gap-3">
                     <input
                       type="checkbox"
-                      className="h-5 w-5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                      className="h-5 w-5 rounded border-slate-300 text-red-600 focus:ring-red-500"
                       checked={todo.completed}
                       onChange={() => toggleTodo(todo.id)}
                     />
                     <span
-                      className={`text-base ${
-                        todo.completed
+                      className={`text-base ${todo.completed
                           ? "text-slate-400 line-through"
                           : "text-slate-800"
-                      }`}
+                        }`}
                     >
                       {todo.title}
                     </span>
