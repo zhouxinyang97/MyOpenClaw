@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 
 type Filter = "all" | "active" | "completed";
 
+type Locale = "zh" | "en";
+
 type Todo = {
   id: string;
   title: string;
@@ -12,6 +14,40 @@ type Todo = {
 };
 
 const STORAGE_KEY = "focus-todo-items";
+const LOCALE_KEY = "focus-todo-locale";
+
+const translations = {
+  zh: {
+    brand: "Focus Todo",
+    title: "今天要完成哪些事？",
+    subtitle: "轻量、清爽、专注的待办清单。所有数据保存在浏览器本地。",
+    inputPlaceholder: "写下下一件要做的事…",
+    add: "添加任务",
+    stats: (completed: number, total: number) =>
+      `已完成 ${completed} / ${total}`,
+    filters: { all: "全部", active: "进行中", completed: "已完成" },
+    clearCompleted: "清除已完成",
+    empty: "还没有任务，先写下一个吧。",
+    remove: "删除",
+    footer: "本地存储 · 无需登录 · 现代极简",
+    language: "EN",
+  },
+  en: {
+    brand: "Focus Todo",
+    title: "What do you want to finish today?",
+    subtitle: "A clean, focused todo list. Everything stays in your browser.",
+    inputPlaceholder: "Write your next task…",
+    add: "Add Task",
+    stats: (completed: number, total: number) =>
+      `Completed ${completed} / ${total}`,
+    filters: { all: "All", active: "Active", completed: "Done" },
+    clearCompleted: "Clear Completed",
+    empty: "No tasks yet. Add your first one.",
+    remove: "Remove",
+    footer: "Local storage · No login · Minimal & modern",
+    language: "中文",
+  },
+} as const;
 
 function loadTodos(): Todo[] {
   if (typeof window === "undefined") return [];
@@ -24,13 +60,23 @@ function loadTodos(): Todo[] {
   }
 }
 
+function detectLocale(): Locale {
+  if (typeof window === "undefined") return "zh";
+  const saved = window.localStorage.getItem(LOCALE_KEY) as Locale | null;
+  if (saved === "zh" || saved === "en") return saved;
+  const browserLang = window.navigator.language.toLowerCase();
+  return browserLang.startsWith("zh") ? "zh" : "en";
+}
+
 export default function HomePage() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [title, setTitle] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
+  const [locale, setLocale] = useState<Locale>("zh");
 
   useEffect(() => {
     setTodos(loadTodos());
+    setLocale(detectLocale());
   }, []);
 
   useEffect(() => {
@@ -38,6 +84,15 @@ export default function HomePage() {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
     }
   }, [todos]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(LOCALE_KEY, locale);
+      document.documentElement.lang = locale;
+    }
+  }, [locale]);
+
+  const copy = translations[locale];
 
   const stats = useMemo(() => {
     const total = todos.length;
@@ -88,16 +143,22 @@ export default function HomePage() {
     <main className="min-h-screen px-6 py-12">
       <div className="mx-auto w-full max-w-3xl">
         <header className="mb-10 space-y-3">
-          <div className="inline-flex items-center gap-2 rounded-full bg-red-100 px-3 py-1 text-sm font-medium text-red-700">
-            <span className="h-2 w-2 rounded-full bg-red-500" />
-            Focus Todo
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="inline-flex items-center gap-2 rounded-full bg-red-100 px-3 py-1 text-sm font-medium text-red-700">
+              <span className="h-2 w-2 rounded-full bg-red-500" />
+              {copy.brand}
+            </div>
+            <button
+              className="rounded-full border border-slate-200 px-3 py-1 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-800"
+              onClick={() => setLocale(locale === "zh" ? "en" : "zh")}
+            >
+              {copy.language}
+            </button>
           </div>
           <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
-            今天要完成哪些事？
+            {copy.title}
           </h1>
-          <p className="text-slate-600">
-            轻量、清爽、专注的待办清单。所有数据保存在浏览器本地。
-          </p>
+          <p className="text-slate-600">{copy.subtitle}</p>
         </header>
 
         <section className="rounded-3xl bg-white p-6 shadow-soft ring-1 ring-slate-100">
@@ -105,7 +166,7 @@ export default function HomePage() {
             <div className="flex flex-1 items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
               <input
                 className="w-full bg-transparent text-base text-slate-900 placeholder:text-slate-400 focus:outline-none"
-                placeholder="写下下一件要做的事…"
+                placeholder={copy.inputPlaceholder}
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
                 onKeyDown={handleKey}
@@ -115,27 +176,24 @@ export default function HomePage() {
               className="rounded-2xl bg-red-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-700"
               onClick={addTodo}
             >
-              添加任务
+              {copy.add}
             </button>
           </div>
 
           <div className="mt-6 flex flex-wrap items-center justify-between gap-4 text-sm text-slate-500">
-            <span>
-              已完成 {stats.completed} / {stats.total}
-            </span>
+            <span>{copy.stats(stats.completed, stats.total)}</span>
             <div className="flex items-center gap-2">
               {(["all", "active", "completed"] as Filter[]).map((item) => (
                 <button
                   key={item}
                   onClick={() => setFilter(item)}
-                  className={`rounded-full px-3 py-1 text-sm font-medium transition ${filter === item
+                  className={`rounded-full px-3 py-1 text-sm font-medium transition ${
+                    filter === item
                       ? "bg-slate-900 text-white"
                       : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                    }`}
+                  }`}
                 >
-                  {item === "all" && "全部"}
-                  {item === "active" && "进行中"}
-                  {item === "completed" && "已完成"}
+                  {copy.filters[item]}
                 </button>
               ))}
             </div>
@@ -143,14 +201,14 @@ export default function HomePage() {
               className="text-red-600 transition hover:text-red-700"
               onClick={clearCompleted}
             >
-              清除已完成
+              {copy.clearCompleted}
             </button>
           </div>
 
           <div className="mt-6 space-y-3">
             {filteredTodos.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center text-slate-400">
-                还没有任务，先写下一个吧。
+                {copy.empty}
               </div>
             ) : (
               filteredTodos.map((todo) => (
@@ -166,10 +224,11 @@ export default function HomePage() {
                       onChange={() => toggleTodo(todo.id)}
                     />
                     <span
-                      className={`text-base ${todo.completed
+                      className={`text-base ${
+                        todo.completed
                           ? "text-slate-400 line-through"
                           : "text-slate-800"
-                        }`}
+                      }`}
                     >
                       {todo.title}
                     </span>
@@ -178,7 +237,7 @@ export default function HomePage() {
                     className="text-slate-400 transition hover:text-rose-500"
                     onClick={() => removeTodo(todo.id)}
                   >
-                    删除
+                    {copy.remove}
                   </button>
                 </div>
               ))
@@ -187,7 +246,7 @@ export default function HomePage() {
         </section>
 
         <footer className="mt-10 text-center text-sm text-slate-400">
-          本地存储 · 无需登录 · 现代极简
+          {copy.footer}
         </footer>
       </div>
     </main>
