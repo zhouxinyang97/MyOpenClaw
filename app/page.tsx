@@ -40,6 +40,7 @@ const translations = {
     goldLabel: "黄金现价",
     goldLoading: "获取中…",
     goldError: "获取失败",
+    refresh: "刷新"
   },
   en: {
     brand: "Focus Todo",
@@ -58,6 +59,7 @@ const translations = {
     goldLabel: "Gold",
     goldLoading: "Loading…",
     goldError: "Unavailable",
+    refresh: "refesh"
   },
 } as const;
 
@@ -93,28 +95,22 @@ export default function HomePage() {
     setLocale(detectLocale());
   }, []);
 
+  const fetchGold = async () => {
+    try {
+      const res = await fetch("/api/gold");
+      if (!res.ok) throw new Error("failed");
+      const data = (await res.json()) as GoldQuote;
+      setGold(data);
+      setGoldError(false);
+    } catch {
+      setGoldError(true);
+    }
+  };
+
   useEffect(() => {
-    let alive = true;
-
-    const fetchGold = async () => {
-      try {
-        const res = await fetch("/api/gold");
-        if (!res.ok) throw new Error("failed");
-        const data = (await res.json()) as GoldQuote;
-        if (alive) {
-          setGold(data);
-          setGoldError(false);
-        }
-      } catch {
-        if (alive) setGoldError(true);
-      }
-    };
-
     fetchGold();
     const timer = setInterval(fetchGold, 60000);
-
     return () => {
-      alive = false;
       clearInterval(timer);
     };
   }, []);
@@ -203,6 +199,20 @@ export default function HomePage() {
                   <span className="text-slate-400">{copy.goldLoading}</span>
                 )}
               </div>
+              {
+                gold ? (
+                  <div
+                    className="rounded-2xl cursor-pointer bg-red-600 px-3 py-1 text-xs font-semibold text-white transition hover:bg-red-700"
+                    onClick={() => {
+                      setGold(null)
+                      fetchGold();
+                    }}
+                  >
+                    {copy.refresh}
+                  </div>
+                ) : ""
+              }
+
             </div>
             <button
               className="rounded-full border border-slate-200 px-3 py-1 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-800"
@@ -243,11 +253,10 @@ export default function HomePage() {
                 <button
                   key={item}
                   onClick={() => setFilter(item)}
-                  className={`rounded-full px-3 py-1 text-sm font-medium transition ${
-                    filter === item
-                      ? "bg-slate-900 text-white"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                  }`}
+                  className={`rounded-full px-3 py-1 text-sm font-medium transition ${filter === item
+                    ? "bg-slate-900 text-white"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    }`}
                 >
                   {copy.filters[item]}
                 </button>
@@ -280,11 +289,10 @@ export default function HomePage() {
                       onChange={() => toggleTodo(todo.id)}
                     />
                     <span
-                      className={`text-base ${
-                        todo.completed
-                          ? "text-slate-400 line-through"
-                          : "text-slate-800"
-                      }`}
+                      className={`text-base ${todo.completed
+                        ? "text-slate-400 line-through"
+                        : "text-slate-800"
+                        }`}
                     >
                       {todo.title}
                     </span>
