@@ -1,10 +1,25 @@
 import { NextResponse } from "next/server";
 
-type MetalsLiveSpot = [string, number][];
+type GoldApiResponse = {
+  price: number;
+  timestamp?: number;
+};
 
 export async function GET() {
   try {
-    const res = await fetch("https://api.metals.live/v1/spot", {
+    const token = process.env.GOLDAPI_TOKEN;
+
+    if (!token) {
+      return NextResponse.json(
+        { error: "missing_token" },
+        { status: 500 }
+      );
+    }
+
+    const res = await fetch("https://www.goldapi.io/api/XAU/USD", {
+      headers: {
+        "x-access-token": token,
+      },
       next: { revalidate: 60 },
     });
 
@@ -15,18 +30,19 @@ export async function GET() {
       );
     }
 
-    const data = (await res.json()) as MetalsLiveSpot;
-    const gold = data.find((item) => item[0] === "gold");
+    const data = (await res.json()) as GoldApiResponse;
 
-    if (!gold) {
+    if (!data?.price) {
       return NextResponse.json({ error: "no_gold" }, { status: 502 });
     }
 
     return NextResponse.json({
       symbol: "XAU",
-      price: gold[1],
+      price: data.price,
       currency: "USD/oz",
-      updatedAt: new Date().toISOString(),
+      updatedAt: data.timestamp
+        ? new Date(data.timestamp * 1000).toISOString()
+        : new Date().toISOString(),
     });
   } catch {
     return NextResponse.json({ error: "request_failed" }, { status: 502 });
